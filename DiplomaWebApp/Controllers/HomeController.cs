@@ -3,6 +3,8 @@ using DiplomaWebApp.Models;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Threading.Tasks;
@@ -20,9 +22,10 @@ namespace DiplomaWebApp.Controllers
             _appEnvironment = appEnvironment;
         }
 
-        public IActionResult Index()
+        public async Task<IActionResult> Index()
         {
-            return View();
+            IEnumerable<FileModel> files = await _filesService.GetAllAsync();
+            return View(files);
         }
 
         [HttpPost]
@@ -31,6 +34,7 @@ namespace DiplomaWebApp.Controllers
             if (uploadedFile != null)
             {
                 // путь к папке Files
+                //string newFileName = String.Format(@"{0}.wav", Guid.NewGuid());
                 string path = "/files/" + uploadedFile.FileName;
                 // сохраняем файл в папку Files в каталоге wwwroot
                 using (var fileStream = new FileStream(_appEnvironment.WebRootPath + path, FileMode.Create))

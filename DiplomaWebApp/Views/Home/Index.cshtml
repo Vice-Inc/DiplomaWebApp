@@ -1,8 +1,16 @@
-﻿@{
-    ViewData["Title"] = "Home Page";
+﻿@model IEnumerable<FileModel>
+@{
+	ViewData["Title"] = "Добавление файла";
 }
-
-<div class="text-center">
-    <h1>Загрузать файл .wav</h1>
-
-</div>
+<h3>Выберите файл для загрузки</h3>
+<br />
+<form asp-action="AddFile" asp-controller="Home" method="post" enctype="multipart/form-data">
+	<input type="file" name="uploadedFile" /><br>
+	<input type="submit" value="Загрузить" />
+</form>
+<br />
+<h3>Все файлы</h3>
+@foreach (FileModel f in Model)
+{
+	<p>@f.Name</p>
+}
