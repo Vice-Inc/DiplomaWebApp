@@ -43,7 +43,15 @@ namespace DiplomaWebApp.Controllers
 
             infoViewModel.FileModel = file;
 
-            //string res = new RunCmd().Run("/python/main.py", "");
+            string pathToWorkingDirectory = _appEnvironment.WebRootPath + "/python/";
+            string pathToMusic = _appEnvironment.WebRootPath + file.Path;
+            string pathToMainPy = pathToWorkingDirectory + "main.py";
+
+            
+            RunCmdResult result = new RunCmd().Run(pathToMainPy, pathToMusic);
+
+            infoViewModel.Predictions = result.Result;
+            infoViewModel.Errors = result.Errors;
 
             return View(infoViewModel);
         }

@@ -5,7 +5,7 @@ namespace DiplomaWebApp.Python
 {
     public class RunCmd
     {
-        public string Run(string cmd, string args)
+        public RunCmdResult Run(string cmd, string args)
         {
             ProcessStartInfo start = new ProcessStartInfo();
             start.FileName = "python";
@@ -18,9 +18,11 @@ namespace DiplomaWebApp.Python
             {
                 using (StreamReader reader = process.StandardOutput)
                 {
-                    string stderr = process.StandardError.ReadToEnd(); // Here are the exceptions from our Python script
-                    string result = reader.ReadToEnd(); // Here is the result of StdOut(for example: print "test")
-                    return result;
+                    RunCmdResult runCmdResult = new RunCmdResult();
+
+                    runCmdResult.Errors = process.StandardError.ReadToEnd(); // Here are the exceptions from our Python script
+                    runCmdResult.Result = reader.ReadToEnd(); // Here is the result of StdOut(for example: print "test")
+                    return runCmdResult;
                 }
             }
         }
