@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Threading.Tasks;
 
@@ -32,11 +33,11 @@ namespace DiplomaWebApp.Controllers
 
         public async Task<IActionResult> Info(int id)
         {
-            InfoViewModel infoViewModel = new InfoViewModel() { Predictions="empty"};
+            InfoViewModel infoViewModel = new InfoViewModel();
 
             FileModel file = await _filesService.GetByIdAsync(id);
 
-            if(file is null)
+            if (file is null)
             {
                 return RedirectToAction("FileNotFound");
             }
@@ -47,11 +48,41 @@ namespace DiplomaWebApp.Controllers
             string pathToMusic = _appEnvironment.WebRootPath + file.Path;
             string pathToMainPy = pathToWorkingDirectory + "main.py";
 
-            
-            RunCmdResult result = new RunCmd().Run(pathToMainPy, pathToMusic);
 
-            infoViewModel.Predictions = result.Result;
+            RunCmdResult result = new RunCmd().Run(pathToMainPy, pathToMusic);
+            result.Result = result.Result.Replace("[[", "");
+            result.Result = result.Result.Replace("]]", "");
+
+            infoViewModel.Predictions = new List<double>();
             infoViewModel.Errors = result.Errors;
+
+            string[] predictions = result.Result.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+
+            if (predictions.Length != 10)
+                return View(infoViewModel);
+
+            double sumOfPrediction = 0;
+
+            foreach (string prediction in predictions)
+            {
+                decimal predictionDecimal;
+                double predictionDouble;
+                if (!decimal.TryParse(prediction, NumberStyles.Any, CultureInfo.InvariantCulture, out predictionDecimal))
+                    return View(infoViewModel);
+
+                predictionDouble = decimal.ToDouble(predictionDecimal);
+                sumOfPrediction += predictionDouble;
+
+                infoViewModel.Predictions.Add(predictionDouble);
+            }
+
+            for(int i = 0; i < infoViewModel.Predictions.Count; i++)
+            {
+                infoViewModel.Predictions[i] = (infoViewModel.Predictions[i] / sumOfPrediction) * 100;
+            }
+
+            await _filesService.DeleteAsync(file.Id);
+            System.IO.File.Delete(pathToMusic);
 
             return View(infoViewModel);
         }

@@ -2,6 +2,16 @@
 @{
 	ViewData["Title"] = "Результат";
 }
+
 <h3>Результат по файлу: @Model.FileModel.Name</h3>
-<p>@Model.Predictions</p>
+@{
+	int i = 0;
+	foreach (double prediction in @Model.Predictions)
+	{
+		Genre genre = (Genre)i;
+		<p>@genre.ToString(): @prediction.ToString("F2")%</p>
+		i++;
+	}
+}
+
 <p>@Model.Errors</p>
