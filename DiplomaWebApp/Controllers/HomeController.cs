@@ -1,5 +1,7 @@
 ﻿using DiplomaWebApp.Data.Interfaces;
 using DiplomaWebApp.Models;
+using DiplomaWebApp.Models.ViewModels;
+using DiplomaWebApp.Python;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -28,6 +30,29 @@ namespace DiplomaWebApp.Controllers
             return View(files);
         }
 
+        public async Task<IActionResult> Info(int id)
+        {
+            InfoViewModel infoViewModel = new InfoViewModel() { Predictions="empty"};
+
+            FileModel file = await _filesService.GetByIdAsync(id);
+
+            if(file is null)
+            {
+                return RedirectToAction("FileNotFound");
+            }
+
+            infoViewModel.FileModel = file;
+
+            //string res = new RunCmd().Run("/python/main.py", "");
+
+            return View(infoViewModel);
+        }
+
+        public IActionResult FileNotFound()
+        {
+            return View();
+        }
+
         [HttpPost]
         public async Task<IActionResult> AddFile(IFormFile uploadedFile)
         {
@@ -48,6 +73,9 @@ namespace DiplomaWebApp.Controllers
                 FileModel file = new FileModel { Name = uploadedFile.FileName, Path = path, RandomNameInServer = randomNameInServer };
 
                 await _filesService.AddAsync(file);
+                file = await _filesService.GetByRandomNameAsync(randomNameInServer);
+
+                return RedirectToAction("Info", "Home", new { id = file.Id });
             }
 
             return RedirectToAction("Index");
