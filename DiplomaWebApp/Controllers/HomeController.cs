@@ -31,17 +31,21 @@ namespace DiplomaWebApp.Controllers
         [HttpPost]
         public async Task<IActionResult> AddFile(IFormFile uploadedFile)
         {
-            if (uploadedFile != null)
+            if (uploadedFile != null && uploadedFile.FileName.Contains(".wav"))
             {
                 // путь к папке Files
-                //string newFileName = String.Format(@"{0}.wav", Guid.NewGuid());
-                string path = "/files/" + uploadedFile.FileName;
+                string randomNameInServer = String.Format(@"{0}.wav", Guid.NewGuid());
+                string path = "/files/" + randomNameInServer;
+
+                //uploadedFile.FileName - реальное имя файла
+                //randomNameInServer - имя файла на сервере
+
                 // сохраняем файл в папку Files в каталоге wwwroot
                 using (var fileStream = new FileStream(_appEnvironment.WebRootPath + path, FileMode.Create))
                 {
                     await uploadedFile.CopyToAsync(fileStream);
                 }
-                FileModel file = new FileModel { Name = uploadedFile.FileName, Path = path };
+                FileModel file = new FileModel { Name = uploadedFile.FileName, Path = path, RandomNameInServer = randomNameInServer };
 
                 await _filesService.AddAsync(file);
             }
