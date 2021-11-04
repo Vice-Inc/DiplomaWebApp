@@ -5,6 +5,7 @@ using DiplomaWebApp.Python;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Routing;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -23,6 +24,13 @@ namespace DiplomaWebApp.Controllers
         {
             _filesService = filesService;
             _appEnvironment = appEnvironment;
+        }
+
+        [Route("Home/Error")]
+        [Route("Home/Error/{errors}")]
+        public IActionResult Error(string errors)
+        {
+            return View("Error", errors);
         }
 
         public async Task<IActionResult> Index()
@@ -45,13 +53,14 @@ namespace DiplomaWebApp.Controllers
             infoViewModel.FileModel = file;
 
             string pathToWorkingDirectory = _appEnvironment.WebRootPath + "/python/";
-            string pathToMusic = _appEnvironment.WebRootPath + file.Path;
-            string pathToMainPy = pathToWorkingDirectory + "main.py";
+            string pathToMainPy = pathToWorkingDirectory + "predictor.py";
 
-
-            RunCmdResult result = new RunCmd().Run(pathToMainPy, pathToMusic);
+            RunCmdResult result = new RunCmd().Run(pathToMainPy, file.Path);
             result.Result = result.Result.Replace("[[", "");
             result.Result = result.Result.Replace("]]", "");
+
+            await _filesService.DeleteAsync(file.Id);
+            System.IO.File.Delete(file.Path);
 
             infoViewModel.Predictions = new List<double>();
             infoViewModel.Errors = result.Errors;
@@ -81,9 +90,6 @@ namespace DiplomaWebApp.Controllers
                 infoViewModel.Predictions[i] = (infoViewModel.Predictions[i] / sumOfPrediction) * 100;
             }
 
-            await _filesService.DeleteAsync(file.Id);
-            System.IO.File.Delete(pathToMusic);
-
             return View(infoViewModel);
         }
 
@@ -95,22 +101,46 @@ namespace DiplomaWebApp.Controllers
         [HttpPost]
         public async Task<IActionResult> AddFile(IFormFile uploadedFile)
         {
-            if (uploadedFile != null && uploadedFile.FileName.Contains(".wav"))
+            if (uploadedFile != null && (uploadedFile.FileName.Contains(".wav") || uploadedFile.FileName.Contains(".mp3")))
             {
-                // путь к папке Files
-                string randomNameInServer = String.Format(@"{0}.wav", Guid.NewGuid());
-                string path = "/files/" + randomNameInServer;
-
                 //uploadedFile.FileName - реальное имя файла
-                //randomNameInServer - имя файла на сервере
+                //randomNameInServerBeforeConverter - имя файла на сервере до конвертирования
+                //randomNameInServerAfterConverter - имя файла на сервере после конвертирования
+                string randomNameInServerBeforeConverter;
 
-                // сохраняем файл в папку Files в каталоге wwwroot
-                using (var fileStream = new FileStream(_appEnvironment.WebRootPath + path, FileMode.Create))
+                if (uploadedFile.FileName.Contains(".wav"))
+                    randomNameInServerBeforeConverter = String.Format(@"{0}.wav", Guid.NewGuid());
+                else if (uploadedFile.FileName.Contains(".mp3"))
+                    randomNameInServerBeforeConverter = String.Format(@"{0}.mp3", Guid.NewGuid());
+                else
+                    return RedirectToAction("Error", "Home", new { errors = "Неправильное расширение файла" });
+
+                string pathToFileInServerBeforeConverter = _appEnvironment.WebRootPath + "/files/" + randomNameInServerBeforeConverter;
+                string pathToFileInServerAfterConverter;
+
+                // сохраняем файл в папку files в каталоге wwwroot
+                using (var fileStream = new FileStream(pathToFileInServerBeforeConverter, FileMode.Create))
                 {
                     await uploadedFile.CopyToAsync(fileStream);
                 }
-                FileModel file = new FileModel { Name = uploadedFile.FileName, Path = path, RandomNameInServer = randomNameInServer };
 
+                // Конвертирование
+                string pathToWorkingDirectory = _appEnvironment.WebRootPath + "/python/";
+                string pathToMainPy = pathToWorkingDirectory + "converter.py";
+
+                RunCmdResult result = new RunCmd().Run(pathToMainPy, pathToFileInServerBeforeConverter);
+                string[] results = result.Result.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+                if (results.Length != 2)
+                    return RedirectToAction("Error", new {errors = "Ошибка в работе конвертера" });
+                if (results[0] != "OK")
+                    return RedirectToAction("Error", "Home", new { errors = results[1] });
+                pathToFileInServerAfterConverter = results[1].Trim(new char[] { '\n', '\r'});
+
+                // Создание моледи
+                string randomNameInServer = pathToFileInServerAfterConverter.Substring(pathToFileInServerAfterConverter.IndexOf("/files/") + 7);
+                FileModel file = new FileModel { Name = uploadedFile.FileName, Path = pathToFileInServerAfterConverter, RandomNameInServer = randomNameInServer };
+
+                // Сохранение в БД
                 await _filesService.AddAsync(file);
                 file = await _filesService.GetByRandomNameAsync(randomNameInServer);
 
@@ -118,12 +148,6 @@ namespace DiplomaWebApp.Controllers
             }
 
             return RedirectToAction("Index");
-        }
-
-        [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
-        public IActionResult Error()
-        {
-            return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
         }
     }
 }

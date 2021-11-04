@@ -12,14 +12,14 @@ if __name__ == "__main__":
     from sklearn.preprocessing import StandardScaler
     import keras
     import shutil
-
     import sys
 
-    pathToWorkingDirectory = sys.argv[0].replace("main.py","")
-    pathToMusic = 'classical.00000.wav'
+    if (len(sys.argv) < 2):
+        print('There is no file to predict')
+        exit(0)
 
-    if len(sys.argv) > 1:
-        pathToMusic = sys.argv[1] 
+    pathToWorkingDirectory = sys.argv[0].replace("predictor.py","")
+    pathToMusic = sys.argv[1]
 
     if path.exists(pathToWorkingDirectory + 'dataset_input.csv'):
         os.remove(pathToWorkingDirectory + 'dataset_input.csv')
@@ -51,6 +51,8 @@ if __name__ == "__main__":
     scaler = StandardScaler()
     X = scaler.fit_transform(np.array(data.iloc[:, :-1], dtype=float))
     X_unknown = np.array([X[-1]])
+
+    os.remove(pathToWorkingDirectory + 'dataset_input.csv')
 
     model = keras.models.load_model(pathToWorkingDirectory + 'my_model-69.h5')
 

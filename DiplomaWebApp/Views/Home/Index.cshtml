@@ -2,6 +2,7 @@
 @{
 	ViewData["Title"] = "Добавление файла";
 }
+
 <h3>Выберите файл для загрузки</h3>
 <br />
 <form asp-action="AddFile" asp-controller="Home" method="post" enctype="multipart/form-data">
@@ -9,10 +10,11 @@
 	<input type="submit" value="Загрузить" />
 </form>
 <br />
+
 <h3>Все файлы</h3>
 @foreach (FileModel f in Model)
 {
 	<p>@f.Name</p>
 	<p>@f.RandomNameInServer</p>
-	<p></p>
+	<p>---</p>
 }
