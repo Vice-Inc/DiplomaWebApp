@@ -3,14 +3,29 @@
 	ViewData["Title"] = "Результат";
 }
 
-<h3>Результат по файлу: @Model.FileModel.Name</h3>
+<h1>Результат по файлу: @Model.FileModel.Name</h1>
 @{
-	int i = 0;
-	foreach (double prediction in @Model.Predictions)
+	int predictionIndex = 0;
+	foreach (KeyValuePair<string, List<double>> predictionByModel in @Model.Predictions)
 	{
-		Genre genre = (Genre)i;
-		<p>@genre.ToString(): @prediction.ToString("F2")%</p>
-		i++;
+		<h3>@predictionByModel.Key</h3>
+		int genreIndex = 0;
+		foreach (double prediction in predictionByModel.Value)
+		{
+			Genre genre = (Genre)genreIndex;
+			if (genreIndex == Model.ListOfMaxIndexes[predictionIndex])
+			{
+				<p><b>@genre.ToString(): @prediction.ToString("F2")%</b></p>
+			}
+			else
+			{
+				<p>@genre.ToString(): @prediction.ToString("F2")%</p>
+			}
+
+			genreIndex++;
+		}
+
+		predictionIndex++;
 	}
 }
 

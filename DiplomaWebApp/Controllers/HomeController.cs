@@ -58,36 +58,61 @@ namespace DiplomaWebApp.Controllers
             RunCmdResult result = new RunCmd().Run(pathToMainPy, file.Path);
             result.Result = result.Result.Replace("[[", "");
             result.Result = result.Result.Replace("]]", "");
+            result.Result = result.Result.Replace("\n", "");
+            result.Result = result.Result.Replace("\r", "");
 
             await _filesService.DeleteAsync(file.Id);
             System.IO.File.Delete(file.Path);
 
-            infoViewModel.Predictions = new List<double>();
+            infoViewModel.Predictions = new Dictionary<string, List<double>>();
+            infoViewModel.ListOfMaxIndexes = new List<int>();
             infoViewModel.Errors = result.Errors;
 
-            string[] predictions = result.Result.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+            string[] predictionsByModels = result.Result.Split(new char[] { '#' }, StringSplitOptions.RemoveEmptyEntries);
 
-            if (predictions.Length != 10)
+            if(predictionsByModels.Length < 1)
                 return View(infoViewModel);
 
-            double sumOfPrediction = 0;
-
-            foreach (string prediction in predictions)
+            foreach (string predictionsByModel in predictionsByModels)
             {
-                decimal predictionDecimal;
-                double predictionDouble;
-                if (!decimal.TryParse(prediction, NumberStyles.Any, CultureInfo.InvariantCulture, out predictionDecimal))
-                    return View(infoViewModel);
+                string[] nameAndPredictionsOfModel = predictionsByModel.Split(new char[] { '*' }, StringSplitOptions.RemoveEmptyEntries);
 
-                predictionDouble = decimal.ToDouble(predictionDecimal);
-                sumOfPrediction += predictionDouble;
+                if (nameAndPredictionsOfModel.Length != 2)
+                    continue;
 
-                infoViewModel.Predictions.Add(predictionDouble);
-            }
+                string[] predictions = nameAndPredictionsOfModel[1].Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
 
-            for(int i = 0; i < infoViewModel.Predictions.Count; i++)
-            {
-                infoViewModel.Predictions[i] = (infoViewModel.Predictions[i] / sumOfPrediction) * 100;
+                if (predictions.Length != 10)
+                    continue;
+
+                double sumOfPrediction = 0;
+
+                List<double> localPredictions = new List<double>();
+
+                foreach (string prediction in predictions)
+                {
+                    decimal predictionDecimal;
+                    double predictionDouble;
+                    if (!decimal.TryParse(prediction, NumberStyles.Any, CultureInfo.InvariantCulture, out predictionDecimal))
+                        return View(infoViewModel);
+
+                    predictionDouble = decimal.ToDouble(predictionDecimal);
+                    sumOfPrediction += predictionDouble;
+
+                    localPredictions.Add(predictionDouble);
+                }
+
+                int maxPredictionIndex = 0;
+                for (int i = 0; i < localPredictions.Count; i++)
+                {
+                    localPredictions[i] = (localPredictions[i] / sumOfPrediction) * 100;
+
+                    if (localPredictions[i] > localPredictions[maxPredictionIndex])
+                        maxPredictionIndex = i;
+                }
+
+                infoViewModel.ListOfMaxIndexes.Add(maxPredictionIndex);
+                infoViewModel.Predictions.Add(nameAndPredictionsOfModel[0], localPredictions);
             }
 
             return View(infoViewModel);

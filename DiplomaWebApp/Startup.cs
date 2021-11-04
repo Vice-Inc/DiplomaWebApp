@@ -11,6 +11,8 @@ using Microsoft.Extensions.Hosting;
 //Add-Migration Initial
 //Update-Database
 
+//http://blog.gregzaal.com/how-to-install-ffmpeg-on-windows/
+
 namespace DiplomaWebApp
 {
     public class Startup
