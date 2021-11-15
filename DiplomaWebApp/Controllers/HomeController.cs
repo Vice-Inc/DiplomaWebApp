@@ -73,6 +73,10 @@ namespace DiplomaWebApp.Controllers
             if(predictionsByModels.Length < 1)
                 return View(infoViewModel);
 
+            List<double> globalPredictions = new List<double>();
+            double sumOfGlobalPredictions = 0;
+            int maxPredictionIndex = 0;
+
             foreach (string predictionsByModel in predictionsByModels)
             {
                 string[] nameAndPredictionsOfModel = predictionsByModel.Split(new char[] { '*' }, StringSplitOptions.RemoveEmptyEntries);
@@ -85,7 +89,7 @@ namespace DiplomaWebApp.Controllers
                 if (predictions.Length != 10)
                     continue;
 
-                double sumOfPrediction = 0;
+                double sumOfLocalPredictions = 0;
 
                 List<double> localPredictions = new List<double>();
 
@@ -97,15 +101,21 @@ namespace DiplomaWebApp.Controllers
                         return View(infoViewModel);
 
                     predictionDouble = decimal.ToDouble(predictionDecimal);
-                    sumOfPrediction += predictionDouble;
+                    sumOfLocalPredictions += predictionDouble;
 
                     localPredictions.Add(predictionDouble);
                 }
 
-                int maxPredictionIndex = 0;
+                maxPredictionIndex = 0;
                 for (int i = 0; i < localPredictions.Count; i++)
                 {
-                    localPredictions[i] = (localPredictions[i] / sumOfPrediction) * 100;
+                    if (globalPredictions.Count < (i + 1))
+                        globalPredictions.Add(0);
+
+                    globalPredictions[i] += localPredictions[i];
+                    sumOfGlobalPredictions += localPredictions[i];
+
+                    localPredictions[i] = (localPredictions[i] / sumOfLocalPredictions) * 100;
 
                     if (localPredictions[i] > localPredictions[maxPredictionIndex])
                         maxPredictionIndex = i;
@@ -114,6 +124,18 @@ namespace DiplomaWebApp.Controllers
                 infoViewModel.ListOfMaxIndexes.Add(maxPredictionIndex);
                 infoViewModel.Predictions.Add(nameAndPredictionsOfModel[0], localPredictions);
             }
+
+            maxPredictionIndex = 0;
+            for (int i = 0; i < globalPredictions.Count; i++)
+            {
+                globalPredictions[i] = (globalPredictions[i] / sumOfGlobalPredictions) * 100;
+
+                if (globalPredictions[i] > globalPredictions[maxPredictionIndex])
+                    maxPredictionIndex = i;
+            }
+
+            infoViewModel.ListOfMaxIndexes.Add(maxPredictionIndex);
+            infoViewModel.Predictions.Add("Учитывая все результаты", globalPredictions);
 
             return View(infoViewModel);
         }

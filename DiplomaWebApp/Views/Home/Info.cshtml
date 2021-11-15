@@ -15,7 +15,7 @@
 			Genre genre = (Genre)genreIndex;
 			if (genreIndex == Model.ListOfMaxIndexes[predictionIndex])
 			{
-				<p><b>@genre.ToString(): @prediction.ToString("F2")%</b></p>
+				<p style="color:greenyellow"><b>@genre.ToString(): @prediction.ToString("F2")%</b></p>
 			}
 			else
 			{
@@ -24,6 +24,8 @@
 
 			genreIndex++;
 		}
+
+		<p>=================</p>
 
 		predictionIndex++;
 	}

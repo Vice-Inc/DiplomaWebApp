@@ -57,43 +57,15 @@ if __name__ == "__main__":
 
     os.remove(pathToWorkingDirectory + 'dataset_input.csv')
 
-    model = keras.models.load_model(pathToWorkingDirectory + 'my_model-66.h5')
-    print('my_model-66*', end="")
-    predictions = model.predict(X_unknown)
-    print(predictions)
-    print('#')
+    pathToModels = pathToWorkingDirectory + 'models/'
 
-    model = keras.models.load_model(pathToWorkingDirectory + 'my_model-68.h5')
-    print('my_model-68*', end="")
-    predictions = model.predict(X_unknown)
-    print(predictions)
-    print('#')
-
-    model = keras.models.load_model(pathToWorkingDirectory + 'my_model-69.h5')
-    print('my_model-69*', end="")
-    predictions = model.predict(X_unknown)
-    print(predictions)
-    print('#')
-
-    model = keras.models.load_model(pathToWorkingDirectory + 'my_model-69-1.h5')
-    print('my_model-69-1*')
-    predictions = model.predict(X_unknown)
-    print(predictions)
-    print('#')
-
-    model = keras.models.load_model(pathToWorkingDirectory + 'my_model-70.h5')
-    print('my_model-70*')
-    predictions = model.predict(X_unknown)
-    print(predictions)
-    print('#')
-
-    model = keras.models.load_model(pathToWorkingDirectory + 'my_model-71.h5')
-    print('my_model-71*')
-    predictions = model.predict(X_unknown)
-    print(predictions)
-    print('#')
-
-    model = keras.models.load_model(pathToWorkingDirectory + 'my_model-74.h5')
-    print('my_model-74*')
-    predictions = model.predict(X_unknown)
-    print(predictions)
+    for dirname in os.listdir(pathToModels):
+        pathToDir = pathToModels + dirname + '/'
+        if not ('.' in dirname):
+            for modelName in os.listdir(pathToDir):
+                pathToModel = pathToDir + modelName
+                model = keras.models.load_model(pathToModel)
+                print(f'{modelName}*')
+                predictions = model.predict(X_unknown)
+                print(predictions)
+                print('#')
