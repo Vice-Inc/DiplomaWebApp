@@ -1,0 +1,95 @@
+﻿@model string
+
+@{
+	Layout = "_LayoutWithSmallHeader";
+}
+
+<div class="intro" id="intro">
+	<div class="container">
+		<div class="intro_inner">
+			<h1 class="intro_title">Выберите файл для загрузки</h1>
+
+			<form class="form-group" asp-action="AddFile" asp-controller="Upload" method="post" enctype="multipart/form-data">
+				<div class="uploadform">
+					<input type="file" name="uploadedFile" id="file" class="input-file">
+
+					<label class="gradient_button js-labelFile" for="file">
+						<svg width="277" height="62">
+							<rect x="5" y="5" rx="25" fill="none" stroke="url(#grad1)" width="266" height="50"></rect>
+						</svg>
+						<i class="icon fa fa-check"></i>
+						<span class="js-fileName">Загрузить файл</span>
+					</label>
+
+					<div></div>
+
+					<button class="gradient_button" type="submit">
+						<svg width="277" height="62">
+							<rect x="5" y="5" rx="25" fill="none" stroke="url(#grad1)" width="266" height="50"></rect>
+						</svg>
+						<span>Отправить</span>
+					</button>
+
+					<div class="radios_container">
+						<div class="radios">
+							<label class="radio tooltip">
+								<div class="tooltip-content">
+									<div class="tooltip-arrow"></div>
+									<p>Анализируются 30 секунд из середины трека</p>
+								</div>
+								<input type="radio" name="mode" value="low" checked>
+								<span>Слабая обработка</span>
+							</label>
+							<label class="radio tooltip">
+								<div class="tooltip-content">
+									<div class="tooltip-arrow"></div>
+									<p>Анализируются 30 секунд из  начала, середины и конца трека</p>
+								</div>
+								<input type="radio" name="mode" value="middle">
+								<span>Средняя обработка</span>
+							</label>
+							<label class="radio tooltip" data-modal="#error">
+								<div class="tooltip-content">
+									<div class="tooltip-arrow"></div>
+									<p>Весь трек разбивается на промежутки по 30 секунд и каждый из них анализируется</p>
+								</div>
+								<input type="radio" name="mode" value="hard">
+								<span>Серьезная обработка</span>
+							</label>
+						</div>
+					</div>
+
+				</div>
+			</form>
+
+
+		</div><!-- intro_inner -->
+	</div><!-- container -->
+</div><!-- intro -->
+
+
+
+
+@{
+	if (Model != null && Model.Length > 1)
+	{
+		<div class="modal show" id="error">
+			<div class="modal_dialog">
+
+				<button type="button" data-close class="modal_close">
+					<img src="~/images/modal-close-35.png">
+				</button>
+
+				<div class="modal_content">
+
+					<div class="text_center">
+						<h3 class="modal_title">Ошибка</h3>
+						<p class="modal_subtitle">@Model</p>
+					</div>
+
+				</div><!-- modal_content -->
+
+			</div><!-- modal_dialog -->
+		</div><!-- modal -->
+	}
+}

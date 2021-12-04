@@ -1,0 +1,33 @@
+﻿@{
+	Layout = "_Layout";
+}
+
+<!-- PRELOADER -->
+<div class="preloader">
+	<div class="preloader_container">
+		<div class="📦"></div>
+		<div class="📦"></div>
+		<div class="📦"></div>
+		<div class="📦"></div>
+		<div class="📦"></div>
+	</div>
+</div>
+
+<!-- HEADER -->
+<header class="header" id="header">
+	<div class="container">
+		<div class="header_inner">
+			<a asp-controller="Home" asp-action="Index">
+				<div class="header_logo" id="blended-text">Soothsayer</div>
+			</a>
+		</div>
+	</div>
+</header>
+
+
+
+
+<!-- PAGE -->
+<div class="page">
+	@RenderBody()
+</div><!-- page -->

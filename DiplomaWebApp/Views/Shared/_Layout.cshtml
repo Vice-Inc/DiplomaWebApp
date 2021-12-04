@@ -1,17 +1,24 @@
 ﻿<!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - DiplomaWebApp</title>
-    <link rel="stylesheet" href="~/css/site.css" />
+	<meta charset='utf-8'>
+	<title>Soothsayer - Music`s genre predictor</title>
+
+	<meta name='viewport' content='width=device-width, initial-scale=1'>
+	<link href="https://fonts.googleapis.com/css?family=Montserrat:200, 300,300i,400,700&display=swap" rel="stylesheet">
+	<link href="https://fonts.googleapis.com/css?family=Kaushan+Script|Montserrat:400,700&amp;subset=cyrillic-ext" rel="stylesheet">
+	<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+
+	<link rel='stylesheet' type='text/css' media='screen' href='~/css/style.css'>
+	<link rel='stylesheet' type='text/css' media='screen' href='~/css/preloader.css'>
 </head>
 <body>
-	<header>
-	</header>
-
 	@RenderBody()
 
-	<script src="~/js/site.js" asp-append-version="true"></script>
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js" asp-append-version="true"></script>
+	<script src="~/js/app.js" asp-append-version="true"></script>
+	<script src='~/js/preloader.js' asp-append-version="true"></script>
+	<script src='~/js/uploadform.js' asp-append-version="true"></script>
+	<script src='~/js/blended-text.js' asp-append-version="true"></script>
 </body>
 </html>
