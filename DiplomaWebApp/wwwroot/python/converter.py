@@ -85,7 +85,9 @@ if __name__ == "__main__":
 	startsOfParts = []
 	shortParts = []
 	if mode == "low":
-		startsOfParts.append(0)
+		middlePart = int((duration // 2) - 15)
+		if middlePart + 30 < duration:
+			startsOfParts.append(middlePart)
 	elif mode == "middle":
 		startsOfParts.append(0)
 
