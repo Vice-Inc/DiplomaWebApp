@@ -37,10 +37,24 @@ namespace DiplomaWebApp.Controllers
             if (uploadedFile != null && (uploadedFile.FileName.Contains(".wav") || uploadedFile.FileName.Contains(".mp3")))
             {
                 //uploadedFile.FileName - реальное имя файла
+                //randomDirName - рандомное уникальное имя директории для этой операции
+                //randomDirPath - путь к уникальной директории для этой операции
                 //randomNameInServerBeforeConverter - имя файла на сервере до конвертирования
-                //randomNameInServerAfterConverter - имя файла на сервере после конвертирования
+
+                string randomDirName;
+                string randomDirPath;
                 string randomNameInServerBeforeConverter;
 
+                //Определяем рандомное уникальное имя директории для этой операции
+                do
+                {
+                    randomDirName = Guid.NewGuid().ToString();
+                    randomDirPath = _appEnvironment.WebRootPath + "/files/" + randomDirName;
+                } while (Directory.Exists(randomDirPath));
+                Directory.CreateDirectory(randomDirPath);
+                randomDirPath += "/";
+
+                //Определяем имя файла на сервере до конвертирования
                 if (uploadedFile.FileName.Contains(".wav"))
                     randomNameInServerBeforeConverter = String.Format(@"{0}.wav", Guid.NewGuid());
                 else if (uploadedFile.FileName.Contains(".mp3"))
@@ -48,8 +62,8 @@ namespace DiplomaWebApp.Controllers
                 else
                     return RedirectToAction("Index", "Upload", new { errors = "Неправильное расширение файла" });
 
-                string pathToFileInServerBeforeConverter = _appEnvironment.WebRootPath + "/files/" + randomNameInServerBeforeConverter;
-                string pathToFileInServerAfterConverter;
+                //Определяем путь к файлу до конвертирования
+                string pathToFileInServerBeforeConverter = randomDirPath + randomNameInServerBeforeConverter;
 
                 // сохраняем файл в папку files в каталоге wwwroot
                 using (var fileStream = new FileStream(pathToFileInServerBeforeConverter, FileMode.Create))
@@ -61,23 +75,15 @@ namespace DiplomaWebApp.Controllers
                 string pathToWorkingDirectory = _appEnvironment.WebRootPath + "/python/";
                 string pathToMainPy = pathToWorkingDirectory + "converter.py";
 
-                RunCmdResult result = new RunCmd().Run(pathToMainPy, pathToFileInServerBeforeConverter);
+                string lineArgs = randomDirPath + "*" + randomNameInServerBeforeConverter + "*" + mode;
+                RunCmdResult result = new RunCmd().Run(pathToMainPy, lineArgs);
                 string[] results = result.Result.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
-                if (results.Length != 2)
-                    return RedirectToAction("Index", new { errors = "Ошибка в работе конвертера" });
+                if (results[0] is null)
+                    return RedirectToAction("Index", "Upload", new { errors = "There is error in converter`s work" });
                 if (results[0] != "OK")
                     return RedirectToAction("Index", "Upload", new { errors = results[1] });
-                pathToFileInServerAfterConverter = results[1].Trim(new char[] { '\n', '\r' });
 
-                // Создание моледи
-                string randomNameInServer = pathToFileInServerAfterConverter.Substring(pathToFileInServerAfterConverter.IndexOf("/files/") + 7);
-                FileModel file = new FileModel { Name = uploadedFile.FileName, Path = pathToFileInServerAfterConverter, RandomNameInServer = randomNameInServer };
-
-                // Сохранение в БД
-                await _filesService.AddAsync(file);
-                file = await _filesService.GetByRandomNameAsync(randomNameInServer);
-
-                return RedirectToAction("Info", "Upload", new { id = file.Id });
+                return RedirectToAction("Info", "Upload", new { dirName = randomDirName });
             }
             else
             {
@@ -85,104 +91,137 @@ namespace DiplomaWebApp.Controllers
             }
         }
 
-        public async Task<IActionResult> Info(int id)
+        public IActionResult Info(string dirName)
         {
             //ViewModel
             InfoViewModel infoViewModel = new InfoViewModel();
 
-            //Получаем модель файла из бд
-            FileModel file = await _filesService.GetByIdAsync(id);
+            //dirName - рандомное уникальное имя директории для этой операции
+            //randomDirPath - путь к уникальной директории для этой операции
+            string randomDirPath = _appEnvironment.WebRootPath + "/files/" + dirName;
 
-            if (file is null)
+            if (!Directory.Exists(randomDirPath))
             {
                 return RedirectToAction("FileNotFound");
             }
 
-            //Передаем в результат имя файла
-            infoViewModel.FileModel = file;
-
             string pathToWorkingDirectory = _appEnvironment.WebRootPath + "/python/";
             string pathToMainPy = pathToWorkingDirectory + "predictor.py";
 
-            //Запуск анализатора
-            RunCmdResult result = new RunCmd().Run(pathToMainPy, file.Path);
-            result.Result = result.Result.Replace("[[", "");
-            result.Result = result.Result.Replace("]]", "");
-            result.Result = result.Result.Replace("\n", "");
-            result.Result = result.Result.Replace("\r", "");
+            string[] filePaths = Directory.GetFiles(randomDirPath);
+            List<RunCmdResult> results = new List<RunCmdResult>();
+            string errors = null;
 
-            //Удаление модели файла из БД
-            await _filesService.DeleteAsync(file.Id);
-            System.IO.File.Delete(file.Path);
+            foreach (string filePath in filePaths)
+            {
+                //Запуск анализатора
+                RunCmdResult result = new RunCmd().Run(pathToMainPy, filePath);
+                result.Result = result.Result.Replace("[[", "");
+                result.Result = result.Result.Replace("]]", "");
+                result.Result = result.Result.Replace("\n", "");
+                result.Result = result.Result.Replace("\r", "");
+
+                result.Result = result.Result.Replace("<", "");//TODO
+
+                if (result.Errors is string || result.Errors.Length > 1)
+                    errors = result.Errors;
+
+                results.Add(result);
+            }
+
+            //Удаление папки
+            Directory.Delete(randomDirPath, true);
 
             //Создаем все коллекции
             infoViewModel.Predictions = new Dictionary<string, List<double>>();
             infoViewModel.ListOfMaxIndexes = new List<int>();
-            infoViewModel.Errors = result.Errors;
+            infoViewModel.Errors = errors;
             infoViewModel.ResultPredictions = new Dictionary<int, double>();
 
-            //Парсим результат предсказания
-            string[] predictionsByModels = result.Result.Split(new char[] { '#' }, StringSplitOptions.RemoveEmptyEntries);
+            foreach (RunCmdResult result in results)
+            {
+                //Парсим результат предсказания
+                string[] predictionsByModels = result.Result.Split(new char[] { '#' }, StringSplitOptions.RemoveEmptyEntries);
 
-            if (predictionsByModels.Length < 1)
-                return View(infoViewModel);
+                if (predictionsByModels.Length < 1)
+                    return View(infoViewModel);
 
-            //Усредененные предсказания
+                //Для каждого предсказания
+                foreach (string predictionsByModel in predictionsByModels)
+                {
+                    //Разделяем строку на название и предсказания
+                    string[] nameAndPredictionsOfModel = predictionsByModel.Split(new char[] { '*' }, StringSplitOptions.RemoveEmptyEntries);
+                    if (nameAndPredictionsOfModel.Length != 2)
+                        continue;
+
+                    //Парсим предсказания
+                    string[] predictions = nameAndPredictionsOfModel[1].Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+                    if (predictions.Length != 10)
+                        continue;
+
+                    //Массив предсказаний в даблах
+                    List<double> localPredictions = new List<double>();
+                    //Сумма всех предсказаний для перевода в %
+                    double sumOfLocalPredictions = 0;
+
+                    //Парсим каждую строку предсказания
+                    foreach (string prediction in predictions)
+                    {
+                        decimal predictionDecimal;
+                        double predictionDouble;
+                        if (!decimal.TryParse(prediction, NumberStyles.Any, CultureInfo.InvariantCulture, out predictionDecimal))
+                            return View(infoViewModel);
+
+                        predictionDouble = decimal.ToDouble(predictionDecimal);
+                        sumOfLocalPredictions += predictionDouble;
+
+                        localPredictions.Add(predictionDouble);
+                    }
+
+                    //Переводим чсила в %
+                    for (int i = 0; i < localPredictions.Count; i++)
+                    {
+                        localPredictions[i] = (localPredictions[i] / sumOfLocalPredictions) * 100;
+                    }
+
+                    //Добаляем все это в итог
+                    if (infoViewModel.Predictions.ContainsKey(nameAndPredictionsOfModel[0]))
+                    {
+                        for(int i = 0; i < localPredictions.Count; i++)
+                        {
+                            infoViewModel.Predictions[nameAndPredictionsOfModel[0]][i] += localPredictions[i];
+                        }
+                    }
+                    else
+                    {
+                        infoViewModel.Predictions.Add(nameAndPredictionsOfModel[0], localPredictions);
+                    }
+                }
+            }
+
+            //Усредененные глобальные предсказания
             List<double> globalPredictions = new List<double>();
             double sumOfGlobalPredictions = 0;
             int maxPredictionIndex = 0;
 
-            //Для каждого предсказания
-            foreach (string predictionsByModel in predictionsByModels)
+            foreach (List<double> predictions in infoViewModel.Predictions.Values)
             {
-                //Разделяем строку на название и предсказания
-                string[] nameAndPredictionsOfModel = predictionsByModel.Split(new char[] { '*' }, StringSplitOptions.RemoveEmptyEntries);
-                if (nameAndPredictionsOfModel.Length != 2)
-                    continue;
-
-                //Парсим предсказания
-                string[] predictions = nameAndPredictionsOfModel[1].Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
-                if (predictions.Length != 10)
-                    continue;
-
-                //Сумма предсказаний для перевода в %
-                double sumOfLocalPredictions = 0;
-                //Массив предсказаний в даблах
-                List<double> localPredictions = new List<double>();
-
-                //Парсим каждую строку предсказания
-                foreach (string prediction in predictions)
-                {
-                    decimal predictionDecimal;
-                    double predictionDouble;
-                    if (!decimal.TryParse(prediction, NumberStyles.Any, CultureInfo.InvariantCulture, out predictionDecimal))
-                        return View(infoViewModel);
-
-                    predictionDouble = decimal.ToDouble(predictionDecimal);
-                    sumOfLocalPredictions += predictionDouble;
-
-                    localPredictions.Add(predictionDouble);
-                }
-
-                //Переводим чсила в % и ищем максимум
+                //Делем % на количесво частей файла и ищем максимум
                 maxPredictionIndex = 0;
-                for (int i = 0; i < localPredictions.Count; i++)
+                for (int i = 0; i < predictions.Count; i++)
                 {
                     if (globalPredictions.Count < (i + 1))
                         globalPredictions.Add(0);
 
-                    globalPredictions[i] += localPredictions[i];
-                    sumOfGlobalPredictions += localPredictions[i];
-
-                    localPredictions[i] = (localPredictions[i] / sumOfLocalPredictions) * 100;
-
-                    if (localPredictions[i] > localPredictions[maxPredictionIndex])
+                    predictions[i] = predictions[i] / results.Count;
+                    if (predictions[i] > predictions[maxPredictionIndex])
                         maxPredictionIndex = i;
-                }
 
+                    globalPredictions[i] += predictions[i];
+                    sumOfGlobalPredictions += predictions[i];
+                }
                 //Добаляем все это в итог
                 infoViewModel.ListOfMaxIndexes.Add(maxPredictionIndex);
-                infoViewModel.Predictions.Add(nameAndPredictionsOfModel[0], localPredictions);
             }
 
             //Находим максимум для усредненных предсказаний

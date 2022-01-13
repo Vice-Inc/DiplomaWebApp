@@ -1,3 +1,8 @@
+# Программа принимает на вход музыкальный файл в формате .mp3 или .wav
+# На выходе ожидается ошибка "ERROR Текст ошибки"
+# Или OK с последующим списком треков для дальнейшего анализирования
+# с помощью predictor.py (OK 0.wav 1.wav 2.wav)
+
 if __name__ == "__main__":
 
 	import os
@@ -7,41 +12,123 @@ if __name__ == "__main__":
 	from pydub import AudioSegment
 	import sys
 
-	if (len(sys.argv) < 2):
+	# Проверка есть ли уникальная папка пользователя
+	if len(sys.argv) != 2:
+		print('ERROR There must be 2 args')
+		exit(0)
+
+	args = sys.argv[1].split("*")
+
+	# Проверка есть ли уникальная папка пользователя
+	if len(args) < 1:
+		print('ERROR There is no unique directory name')
+		exit(0)
+
+	# Проверка есть ли файл для конвертирования
+	if len(args) < 2:
 		print('ERROR There is no file to convert')
 		exit(0)
 
-	pathToMusic = sys.argv[1]
+	# Проверка указан ли режим анализования
+	if len(args) < 3:
+		print('ERROR There is no mode')
+		exit(0)
 
+	# Если параметров больше чем надо, то все плохо
+	if len(args) > 3:
+		print('ERROR There are too mach arguments')
+		exit(0)
+
+	# Путь к рабочей директории
+	pathToWorkingDirectory = args[0] + '/'
+
+	# Получаем путь к музыке
+	pathToMusic = pathToWorkingDirectory + args[1]
+
+	# Раздельно имя и расширение файла
 	filename, file_extension = os.path.splitext(pathToMusic)
 
-	if(file_extension != '.mp3' and file_extension != '.wav'):
+	# Реальное имя файла
+	filename = args[1].replace(file_extension, '')
+
+	# Получаем режим анализирования (low/middle/hard)
+	mode = args[2]
+
+
+
+	# Проверка на необходимые расширения файла
+	if file_extension != '.mp3' and file_extension != '.wav':
 		print('ERROR Bad type of file')
 		exit(0)
 
-	duration = librosa.get_duration(filename=pathToMusic)
-
-	pathTo30SecMusic = 'none'
-	if(duration > 30):
-		pathTo30SecMusic = filename + '-30' + file_extension
-		DEVNULL = open(os.devnull, 'wb')
-		process = subprocess.Popen(f'ffmpeg -t 30 -i {pathToMusic} -acodec copy {pathTo30SecMusic}', stdout=DEVNULL, stderr=STDOUT)# shell=True
-		process.wait()
-		DEVNULL.close()
-
-	if(pathTo30SecMusic != 'none'):
-		os.remove(pathToMusic)
-		os.rename(pathTo30SecMusic, pathToMusic)
-
+	# Если нужно, то конвертируем входной файл
 	pathToWavMusic = 'none'
-	if(file_extension == '.mp3'):
-		pathToWavMusic = filename + '-wav' + '.wav'
+	if file_extension == '.mp3':
+		pathToWavMusic = pathToWorkingDirectory + filename + '-wav' + '.wav'
 		sound = AudioSegment.from_mp3(pathToMusic)
 		sound.export(pathToWavMusic, format="wav")
-
-	if(pathToWavMusic != 'none'):
+		file_extension = '.wav'
+	if pathToWavMusic != 'none':
 		os.remove(pathToMusic)
-		pathToMusic = filename + '.wav'
+		pathToMusic = pathToWorkingDirectory + filename + file_extension
 		os.rename(pathToWavMusic, pathToMusic)
 
-	print('OK ' + pathToMusic)
+	# Длительность трека
+	duration = librosa.get_duration(filename=pathToMusic)
+
+	# Если трек короче 30 сек
+	if duration < 30:
+		print('ERROR Too short file')
+		exit(0)
+
+	# Собираем список точек, начиная с которых будем брать по 30 сек трека
+	startsOfParts = []
+	shortParts = []
+	if mode == "low":
+		startsOfParts.append(0)
+	elif mode == "middle":
+		startsOfParts.append(0)
+
+		middlePart = int((duration // 2) - 15)
+		if middlePart > 30 and middlePart + 30 < duration:
+			startsOfParts.append(middlePart)
+
+		endPart = int(duration - 30)
+		if endPart > 30 and endPart > middlePart + 30:
+			startsOfParts.append(endPart)
+	elif mode == "hard":
+		countOfParts = int(duration // 30)
+		for i in range(countOfParts):
+			startsOfParts.append(i * 30)
+	else:
+		os.remove(pathToMusic)
+		print('ERROR Invalid mode')
+		exit(0)
+
+	# Если список точек не пуст, то режем
+	if len(startsOfParts) > 0:
+		DEVNULL = open(os.devnull, 'wb')
+
+		# Для кажой точки нарезаем и добавляем в список
+		for time in startsOfParts:
+			pathTo30SecMusic = pathToWorkingDirectory + str(time) + file_extension
+			shortParts.append(pathTo30SecMusic)
+
+			# ffmpeg -ss 70 -i Ch.mp3 -t 30 result.mp3 - 30 сек начиная с 70й секунды
+			process = subprocess.Popen(f'ffmpeg -ss {time} -i {pathToMusic} -t 30 {pathTo30SecMusic}', stdout=DEVNULL, stderr=STDOUT)
+
+			process.wait()
+
+		DEVNULL.close()
+		os.remove(pathToMusic)
+	else:  # Если список пуст, то сам файл переименовывается и добавляется в список
+		pathTo30SecMusic = pathToWorkingDirectory + "0" + file_extension
+		shortParts.append(pathTo30SecMusic)
+		os.rename(pathToMusic, pathTo30SecMusic)
+
+	result = ''
+	for part in shortParts:
+		result += ' '
+		result += part
+
+	print('OK' + result)

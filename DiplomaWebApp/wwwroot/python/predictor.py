@@ -17,16 +17,23 @@ if __name__ == "__main__":
     import shutil
     import sys
 
-    if (len(sys.argv) < 2):
-        print('There is no file to predict')
+    # Проверка передан ли путь к файлу
+    if len(sys.argv) < 2:
+        print('ERROR There is no path to file')
         exit(0)
 
-    pathToWorkingDirectory = sys.argv[0].replace("predictor.py","")
-    pathToMusic = sys.argv[1]
+    # Если параметров больше чем надо, то все плохо
+    if len(sys.argv) > 2:
+        print('ERROR There are too mach arguments')
+        exit(0)
 
-    if path.exists(pathToWorkingDirectory + 'dataset_input.csv'):
-        os.remove(pathToWorkingDirectory + 'dataset_input.csv')
-    shutil.copy2(pathToWorkingDirectory + 'dataset.csv', pathToWorkingDirectory + 'dataset_input.csv')
+    pathToMusic = sys.argv[1]
+    pathToPyDirectory = sys.argv[0].replace("predictor.py","")
+    pathToCurrentDirectory = os.path.dirname(pathToMusic) + '/'
+
+    if path.exists(pathToCurrentDirectory + 'dataset_input.csv'):
+        os.remove(pathToCurrentDirectory + 'dataset_input.csv')
+    shutil.copy2(pathToPyDirectory + 'dataset.csv', pathToCurrentDirectory + 'dataset_input.csv')
 
     g = 'none'
     songname = 'song'
@@ -43,21 +50,21 @@ if __name__ == "__main__":
         to_append += f' {np.mean(e)}'
     to_append += f' {g}'
 
-    file = open(pathToWorkingDirectory + 'dataset_input.csv', 'a', newline='')
+    file = open(pathToCurrentDirectory + 'dataset_input.csv', 'a', newline='')
     with file:
         writer = csv.writer(file)
         writer.writerow(to_append.split())
 
-    data = pd.read_csv(pathToWorkingDirectory + 'dataset_input.csv')
+    data = pd.read_csv(pathToCurrentDirectory + 'dataset_input.csv')
     data.head()
     data = data.drop(['filename'], axis=1)
     scaler = StandardScaler()
     X = scaler.fit_transform(np.array(data.iloc[:, :-1], dtype=float))
     X_unknown = np.array([X[-1]])
 
-    os.remove(pathToWorkingDirectory + 'dataset_input.csv')
+    os.remove(pathToCurrentDirectory + 'dataset_input.csv')
 
-    pathToModels = pathToWorkingDirectory + 'models/'
+    pathToModels = pathToPyDirectory + 'models/'
 
     for dirname in os.listdir(pathToModels):
         pathToDir = pathToModels + dirname + '/'
