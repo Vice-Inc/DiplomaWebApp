@@ -18,7 +18,7 @@
 	
 	
 	
-	var button = document.getElementById('send-click');
+	var button = document.getElementById('sendButton');
 	button.addEventListener("click", function() {
     	document.body.classList.remove('loaded');
   	});
