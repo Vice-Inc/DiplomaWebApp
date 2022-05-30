@@ -1,6 +1,5 @@
 ﻿using DiplomaWebApp.Data.Interfaces;
 using DiplomaWebApp.Data.MusicData;
-using DiplomaWebApp.Models;
 using DiplomaWebApp.Models.ViewModels;
 using DiplomaWebApp.Python;
 using Microsoft.AspNetCore.Hosting;
