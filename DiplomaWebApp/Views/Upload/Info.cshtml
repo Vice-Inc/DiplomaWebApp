@@ -4,14 +4,11 @@
 }
 
 
-
-
-
 <div class="intro" id="intro">
 	<div class="container">
 		<div class="intro_inner">
 			<h2 class="intro_suptitle">Спасибо за ожидание</h2>
-			<h1 class="intro_title">Скорее всего ваш трек отностится к жанру @Model.ResultGenre.ToString()</h1>
+			<h1 class="intro_title">Скорее всего деталь исправна - вероятность брака: 10%</h1>
 
 			<a class="gradient_button" data-scroll="#more">
 				<svg width="277" height="62">
@@ -31,35 +28,9 @@
 		<div class="section_header">
 			<h2 class="section_title">Как мы это поняли</h2>
 			<div class="section_text">
-				<p>Ваш файл был проанализирован пятнадцатью нейронными сетями. Каждая нейронная сеть высказала свое предположение, а мы учли голос каждой из них. И так вот что получилось:</p>
+				<p>Ваш файл был проанализирован пятнадцатью моделями. Каждая высказала свое предположение, а мы учли голос всех их. И так вот что получилось:</p>
 			</div>
 		</div>
-
-
-
-		<div class="predictions">
-			<div class="main_prediction">
-				@{
-					foreach (KeyValuePair<int, double> prediction in Model.ResultPredictions)
-					{
-						<div class="prediction_circle_container">
-							<svg width="100%" height="100%" viewBox="0 0 42 42" class="donut">
-								<circle class="donut-ring" cx="21" cy="21" r="15.91549430918954"></circle>
-								<circle class="donut-segment" cx="21" cy="21" r="15.91549430918954" stroke-dasharray="@(((int)prediction.Value).ToString()) @((100 - (int)prediction.Value).ToString())"></circle>
-								<g class="chart-text">
-									<text x="50%" y="50%" class="chart-number">@prediction.Value.ToString("F1")%</text>
-									<text x="50%" y="50%" class="chart-label">@(((Genre)prediction.Key).ToString())</text>
-								</g>
-							</svg>
-						</div>
-					}
-				}
-			</div>
-		</div>
-
-
-
-
 
 		<div class="accordion">
 
@@ -69,41 +40,17 @@
 				</div>
 				<div class="accordion_contant" id="wedo_1">
 					<div class="predictions">
-
-
-
 						@{
-							int predictionIndex = 0;
 							foreach (KeyValuePair<string, List<double>> predictionByModel in @Model.Predictions)
 							{
 								<div class="prediction">
 									<div class="prediction_content">
 										<p class="prediction_name">@predictionByModel.Key</p>
-										@{
-											int genreIndex = 0;
-											foreach (double prediction in predictionByModel.Value)
-											{
-												Genre genre = (Genre)genreIndex;
-												if (genreIndex == Model.ListOfMaxIndexes[predictionIndex])
-												{
-													<p class="prediction_item prediction_item-best">@genre.ToString(): @prediction.ToString("F2")%</p>
-												}
-												else
-												{
-													<p class="prediction_item">@genre.ToString(): @prediction.ToString("F2")%</p>
-												}
-
-												genreIndex++;
-											}
-										}
+										<p class="prediction_item">Брак: @predictionByModel.Value[0].ToString("F2")%</p>
 									</div>
 								</div>
-
-								predictionIndex++;
 							}
 						}
-
-
 					</div>
 				</div>
 			</div>
@@ -118,7 +65,7 @@
 <footer class="footer" id="contact">
 	<div class="container">
 		<div class="copyright">
-			© 2022     Soothsayer - Music`s genre predictor by <a href="https://github.com/Vice-Inc">Vice</a>
+			© 2022     Soothsayer by <a href="https://github.com/Vice-Inc">Vice</a>
 		</div>
 	</div>
 </footer>

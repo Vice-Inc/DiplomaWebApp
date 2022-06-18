@@ -1,4 +1,4 @@
-# Программа принимает на вход музыкальный файл в формате .mp3 или .wav
+# Программа принимает на вход файл в формате .mp3 или .wav
 # На выходе ожидается ошибка "ERROR Текст ошибки"
 # Или OK с последующим списком треков для дальнейшего анализирования
 # с помощью predictor.py (OK 0.wav 1.wav 2.wav)
@@ -12,7 +12,7 @@ if __name__ == "__main__":
 	from pydub import AudioSegment
 	import sys
 
-	# Проверка есть ли уникальная папка пользователя
+	# Проверка аргументов
 	if len(sys.argv) != 2:
 		print('ERROR There must be 2 args')
 		exit(0)
@@ -29,9 +29,9 @@ if __name__ == "__main__":
 		print('ERROR There is no file to convert')
 		exit(0)
 
-	# Проверка указан ли режим анализования
+	# Проверка указан ли тип детали
 	if len(args) < 3:
-		print('ERROR There is no mode')
+		print('ERROR There is no type')
 		exit(0)
 
 	# Если параметров больше чем надо, то все плохо
@@ -51,8 +51,8 @@ if __name__ == "__main__":
 	# Реальное имя файла
 	filename = args[1].replace(file_extension, '')
 
-	# Получаем режим анализирования (low/middle/hard)
-	mode = args[2]
+	# Получаем тип детали
+	partType = args[2]
 
 
 
@@ -84,28 +84,9 @@ if __name__ == "__main__":
 	# Собираем список точек, начиная с которых будем брать по 30 сек трека
 	startsOfParts = []
 	shortParts = []
-	if mode == "low":
-		middlePart = int((duration // 2) - 15)
-		if middlePart + 30 < duration:
-			startsOfParts.append(middlePart)
-	elif mode == "middle":
-		startsOfParts.append(0)
-
-		middlePart = int((duration // 2) - 15)
-		if middlePart > 30 and middlePart + 30 < duration:
-			startsOfParts.append(middlePart)
-
-		endPart = int(duration - 30)
-		if endPart > 30 and endPart > middlePart + 30:
-			startsOfParts.append(endPart)
-	elif mode == "hard":
-		countOfParts = int(duration // 30)
-		for i in range(countOfParts):
-			startsOfParts.append(i * 30)
-	else:
-		os.remove(pathToMusic)
-		print('ERROR Invalid mode')
-		exit(0)
+	countOfParts = int(duration // 30)
+	for i in range(countOfParts):
+		startsOfParts.append(i * 30)
 
 	# Если список точек не пуст, то режем
 	if len(startsOfParts) > 0:

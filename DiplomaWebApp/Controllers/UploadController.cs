@@ -30,7 +30,7 @@ namespace DiplomaWebApp.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> AddFile(IFormFile uploadedFile, string mode)
+        public async Task<IActionResult> AddFile(IFormFile uploadedFile, string type)
         {
             //Проверка на допустимый формат файла
             if (uploadedFile != null && (uploadedFile.FileName.Contains(".wav") || uploadedFile.FileName.Contains(".mp3")))
@@ -74,7 +74,7 @@ namespace DiplomaWebApp.Controllers
                 string pathToWorkingDirectory = _appEnvironment.WebRootPath + "/python/";
                 string pathToMainPy = pathToWorkingDirectory + "converter.py";
 
-                string lineArgs = randomDirPath + "*" + randomNameInServerBeforeConverter + "*" + mode;
+                string lineArgs = randomDirPath + "*" + randomNameInServerBeforeConverter + "*" + type;
                 RunCmdResult result = new RunCmd().Run(pathToMainPy, lineArgs);
                 string[] results = result.Result.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
                 if (results[0] is null)
@@ -86,11 +86,11 @@ namespace DiplomaWebApp.Controllers
             }
             else
             {
-                return RedirectToAction("Index", new { errors = "Недопустимый формат файла." });
+                return RedirectToAction("Index", new { errors = "Недопустимый формат файла.", type = type });
             }
         }
 
-        public IActionResult Info(string dirName)
+        public IActionResult Info(string dirName, string type)
         {
             //ViewModel
             InfoViewModel infoViewModel = new InfoViewModel();
@@ -114,7 +114,8 @@ namespace DiplomaWebApp.Controllers
             foreach (string filePath in filePaths)
             {
                 //Запуск анализатора
-                RunCmdResult result = new RunCmd().Run(pathToMainPy, filePath);
+                string lineArgs = filePath + "*" + type;
+                RunCmdResult result = new RunCmd().Run(pathToMainPy, lineArgs);
                 result.Result = result.Result.Replace("[[", "");
                 result.Result = result.Result.Replace("]]", "");
                 result.Result = result.Result.Replace("\n", "");

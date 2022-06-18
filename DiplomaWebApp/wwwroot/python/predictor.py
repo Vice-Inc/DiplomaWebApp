@@ -22,12 +22,21 @@ if __name__ == "__main__":
         print('ERROR There is no path to file')
         exit(0)
 
+    args = sys.argv[1].split("*")
+	# Проверка указан ли тип детали
+    if len(args) < 2:
+        print('ERROR There is no type')
+        exit(0)
+	
     # Если параметров больше чем надо, то все плохо
-    if len(sys.argv) > 2:
+    if len(args) > 2:
         print('ERROR There are too mach arguments')
         exit(0)
 
-    pathToMusic = sys.argv[1]
+    # Получаем тип детали
+    partType = args[1]
+
+    pathToMusic = args[0]
     pathToPyDirectory = sys.argv[0].replace("predictor.py","")
     pathToCurrentDirectory = os.path.dirname(pathToMusic) + '/'
 
@@ -64,7 +73,7 @@ if __name__ == "__main__":
 
     os.remove(pathToCurrentDirectory + 'dataset_input.csv')
 
-    pathToModels = pathToPyDirectory + 'models/'
+    pathToModels = pathToPyDirectory + 'models/' + partType + '/'
 
     for dirname in os.listdir(pathToModels):
         pathToDir = pathToModels + dirname + '/'
